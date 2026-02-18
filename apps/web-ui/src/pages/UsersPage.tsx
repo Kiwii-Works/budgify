@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, 
 import { useSession } from '../context/SessionContext'
 import { userService } from '../services/api.service'
 
+// User management page
 const UsersPage: React.FC = () => {
   const { tenantId, userId, setUserId } = useSession()
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false)
@@ -13,6 +14,7 @@ const UsersPage: React.FC = () => {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
+  // Form state for user registration
   const [registerData, setRegisterData] = useState({
     username: '',
     first_name: '',
@@ -22,6 +24,7 @@ const UsersPage: React.FC = () => {
     password: '',
   })
 
+  // Form state for user update
   const [updateData, setUpdateData] = useState({
     first_name: '',
     last_name: '',
@@ -39,20 +42,21 @@ const UsersPage: React.FC = () => {
     setUpdateData((prev) => ({ ...prev, [name]: value }))
   }
 
+  // Register new user in tenant
   const handleRegisterUser = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setSuccess('')
 
     if (!tenantId) {
-      setError('Tenant ID no configurado')
+      setError('Tenant ID not configured')
       return
     }
 
     setIsLoading(true)
     try {
       const response = await userService.register(registerData, tenantId)
-      setSuccess(`Usuario "${response.username}" registrado exitosamente`)
+      setSuccess(`User "${response.username}" registered successfully`)
       setRegisterData({
         username: '',
         first_name: '',
@@ -63,26 +67,27 @@ const UsersPage: React.FC = () => {
       })
       setIsRegisterModalOpen(false)
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Error al registrar usuario')
+      setError(err.response?.data?.error?.message || 'Error registering user')
     } finally {
       setIsLoading(false)
     }
   }
 
+  // Update existing user information
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setSuccess('')
 
     if (!userId) {
-      setError('User ID no configurado')
+      setError('User ID not configured')
       return
     }
 
     setIsLoading(true)
     try {
       const response = await userService.update(selectedUserId, updateData, userId)
-      setSuccess(`Usuario actualizado exitosamente`)
+      setSuccess(`User updated successfully`)
       setUpdateData({
         first_name: '',
         last_name: '',
@@ -91,43 +96,44 @@ const UsersPage: React.FC = () => {
       })
       setIsUpdateModalOpen(false)
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Error al actualizar usuario')
+      setError(err.response?.data?.error?.message || 'Error updating user')
     } finally {
       setIsLoading(false)
     }
   }
 
+  // Tab configuration for register/update operations
   const tabs = [
     {
-      label: 'Registrar Usuario',
+      label: 'Register User',
       value: 'register',
       content: (
         <Card>
           <CardHeader>
-            <CardTitle>Registrar Nuevo Usuario</CardTitle>
-            <CardDescription>Agrega un nuevo usuario al tenant</CardDescription>
+            <CardTitle>Register New User</CardTitle>
+            <CardDescription>Add a new user to the tenant</CardDescription>
           </CardHeader>
           <CardFooter>
             <Button onClick={() => setIsRegisterModalOpen(true)} disabled={!tenantId}>
-              Registrar Usuario
+              Register User
             </Button>
           </CardFooter>
         </Card>
       ),
     },
     {
-      label: 'Actualizar Usuario',
+      label: 'Update User',
       value: 'update',
       content: (
         <Card>
           <CardHeader>
-            <CardTitle>Actualizar Información de Usuario</CardTitle>
-            <CardDescription>Edita los datos de un usuario existente</CardDescription>
+            <CardTitle>Update User Information</CardTitle>
+            <CardDescription>Edit data for an existing user</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Input
-              label="User ID a Actualizar"
-              placeholder="Ingresa el UUID del usuario"
+              label="User ID to Update"
+              placeholder="Enter the user's UUID"
               value={selectedUserId}
               onChange={(e) => setSelectedUserId(e.target.value)}
             />
@@ -137,7 +143,7 @@ const UsersPage: React.FC = () => {
               onClick={() => setIsUpdateModalOpen(true)}
               disabled={!userId || !selectedUserId}
             >
-              Abrir Formulario
+              Open Form
             </Button>
           </CardFooter>
         </Card>
@@ -146,24 +152,24 @@ const UsersPage: React.FC = () => {
   ]
 
   return (
-    <DashboardLayout title="Gestión de Usuarios">
+    <DashboardLayout title="User Management">
       <div className="space-y-6">
         {error && <Alert variant="error" onClose={() => setError('')}>{error}</Alert>}
         {success && <Alert variant="success" onClose={() => setSuccess('')}>{success}</Alert>}
 
         <Tabs tabs={tabs} />
 
-        {/* Register Modal */}
+        {/* Register User Modal */}
         <Modal
           isOpen={isRegisterModalOpen}
           onClose={() => setIsRegisterModalOpen(false)}
-          title="Registrar Nuevo Usuario"
+          title="Register New User"
           size="lg"
         >
           <form onSubmit={handleRegisterUser} className="space-y-4">
             <Input
-              label="Nombre de Usuario"
-              placeholder="usuario"
+              label="Username"
+              placeholder="username"
               name="username"
               value={registerData.username}
               onChange={handleRegisterChange}
@@ -172,16 +178,16 @@ const UsersPage: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Nombre"
-                placeholder="Juan"
+                label="First Name"
+                placeholder="John"
                 name="first_name"
                 value={registerData.first_name}
                 onChange={handleRegisterChange}
                 required
               />
               <Input
-                label="Apellido"
-                placeholder="Pérez"
+                label="Last Name"
+                placeholder="Doe"
                 name="last_name"
                 value={registerData.last_name}
                 onChange={handleRegisterChange}
@@ -192,7 +198,7 @@ const UsersPage: React.FC = () => {
             <Input
               label="Email"
               type="email"
-              placeholder="usuario@ejemplo.com"
+              placeholder="user@example.com"
               name="email"
               value={registerData.email}
               onChange={handleRegisterChange}
@@ -200,15 +206,15 @@ const UsersPage: React.FC = () => {
             />
 
             <Input
-              label="Teléfono (opcional)"
-              placeholder="+34 600 000 000"
+              label="Phone (optional)"
+              placeholder="+1 234 567 8900"
               name="phone_number"
               value={registerData.phone_number}
               onChange={handleRegisterChange}
             />
 
             <Input
-              label="Contraseña"
+              label="Password"
               type="password"
               placeholder="••••••••"
               name="password"
@@ -219,38 +225,38 @@ const UsersPage: React.FC = () => {
 
             <div className="flex gap-3 justify-end pt-4">
               <Button type="button" variant="secondary" onClick={() => setIsRegisterModalOpen(false)}>
-                Cancelar
+                Cancel
               </Button>
               <Button type="submit" isLoading={isLoading}>
-                Registrar
+                Register
               </Button>
             </div>
           </form>
         </Modal>
 
-        {/* Update Modal */}
+        {/* Update User Modal */}
         <Modal
           isOpen={isUpdateModalOpen}
           onClose={() => setIsUpdateModalOpen(false)}
-          title="Actualizar Usuario"
+          title="Update User"
           size="lg"
         >
           <form onSubmit={handleUpdateUser} className="space-y-4">
             <p className="text-sm text-slate-600">
-              Actualizando usuario: <code className="bg-slate-100 px-2 py-1 rounded">{selectedUserId.slice(0, 8)}...</code>
+              Updating user: <code className="bg-slate-100 px-2 py-1 rounded">{selectedUserId.slice(0, 8)}...</code>
             </p>
 
             <Input
-              label="Nombre"
-              placeholder="Juan"
+              label="First Name"
+              placeholder="John"
               name="first_name"
               value={updateData.first_name}
               onChange={handleUpdateChange}
             />
 
             <Input
-              label="Apellido"
-              placeholder="Pérez"
+              label="Last Name"
+              placeholder="Doe"
               name="last_name"
               value={updateData.last_name}
               onChange={handleUpdateChange}
@@ -259,15 +265,15 @@ const UsersPage: React.FC = () => {
             <Input
               label="Email"
               type="email"
-              placeholder="usuario@ejemplo.com"
+              placeholder="user@example.com"
               name="email"
               value={updateData.email}
               onChange={handleUpdateChange}
             />
 
             <Input
-              label="Teléfono"
-              placeholder="+34 600 000 000"
+              label="Phone"
+              placeholder="+1 234 567 8900"
               name="phone_number"
               value={updateData.phone_number}
               onChange={handleUpdateChange}
@@ -275,10 +281,10 @@ const UsersPage: React.FC = () => {
 
             <div className="flex gap-3 justify-end pt-4">
               <Button type="button" variant="secondary" onClick={() => setIsUpdateModalOpen(false)}>
-                Cancelar
+                Cancel
               </Button>
               <Button type="submit" isLoading={isLoading}>
-                Actualizar
+                Update
               </Button>
             </div>
           </form>

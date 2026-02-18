@@ -6,6 +6,7 @@ interface SignupFormProps {
   onSuccess?: () => void
 }
 
+// User signup form component
 export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess }) => {
   const { setTenantId, setUserId } = useSession()
   const [formData, setFormData] = useState({
@@ -30,13 +31,15 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess }) => {
     e.preventDefault()
     setError('')
 
+    // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
-      setError('Las contraseñas no coinciden')
+      setError('Passwords do not match')
       return
     }
 
+    // Validate tenant ID is provided
     if (!formData.tenant_id) {
-      setError('Por favor ingresa el ID del tenant')
+      setError('Please enter a tenant ID')
       return
     }
 
@@ -51,7 +54,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess }) => {
       localStorage.setItem('accessToken', 'mock-token')
       onSuccess?.()
     } catch (err: any) {
-      setError(err.message || 'Error al registrarse')
+      setError(err.message || 'Signup failed')
     } finally {
       setIsLoading(false)
     }
@@ -63,8 +66,8 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess }) => {
 
       <Input
         type="text"
-        label="Nombre de Usuario"
-        placeholder="usuario"
+        label="Username"
+        placeholder="username"
         name="username"
         value={formData.username}
         onChange={handleChange}
@@ -74,8 +77,8 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess }) => {
       <div className="grid grid-cols-2 gap-4">
         <Input
           type="text"
-          label="Nombre"
-          placeholder="Juan"
+          label="First Name"
+          placeholder="John"
           name="first_name"
           value={formData.first_name}
           onChange={handleChange}
@@ -83,8 +86,8 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess }) => {
         />
         <Input
           type="text"
-          label="Apellido"
-          placeholder="Pérez"
+          label="Last Name"
+          placeholder="Doe"
           name="last_name"
           value={formData.last_name}
           onChange={handleChange}
@@ -95,7 +98,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess }) => {
       <Input
         type="email"
         label="Email"
-        placeholder="usuario@ejemplo.com"
+        placeholder="user@example.com"
         name="email"
         value={formData.email}
         onChange={handleChange}
@@ -104,8 +107,8 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess }) => {
 
       <Input
         type="tel"
-        label="Teléfono (opcional)"
-        placeholder="+34 600 000 000"
+        label="Phone (optional)"
+        placeholder="+1 234 567 8900"
         name="phone_number"
         value={formData.phone_number}
         onChange={handleChange}
@@ -113,8 +116,8 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess }) => {
 
       <Input
         type="text"
-        label="ID del Tenant"
-        placeholder="Ingresa el ID del tenant"
+        label="Tenant ID"
+        placeholder="Enter tenant ID"
         name="tenant_id"
         value={formData.tenant_id}
         onChange={handleChange}
@@ -123,7 +126,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess }) => {
 
       <Input
         type="password"
-        label="Contraseña"
+        label="Password"
         placeholder="••••••••"
         name="password"
         value={formData.password}
@@ -133,7 +136,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess }) => {
 
       <Input
         type="password"
-        label="Confirmar Contraseña"
+        label="Confirm Password"
         placeholder="••••••••"
         name="confirmPassword"
         value={formData.confirmPassword}
@@ -142,14 +145,14 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess }) => {
       />
 
       <Button type="submit" fullWidth isLoading={isLoading}>
-        Crear Cuenta
+        Create Account
       </Button>
 
       <div className="text-center border-t pt-4">
         <p className="text-slate-600 text-sm">
-          ¿Ya tienes cuenta?{' '}
+          Already have an account?{' '}
           <a href="/login" className="text-primary-600 hover:text-primary-700 font-medium">
-            Inicia sesión
+            Sign in
           </a>
         </p>
       </div>

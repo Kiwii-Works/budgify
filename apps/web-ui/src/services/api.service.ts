@@ -12,7 +12,7 @@ import {
   AdminToggleActiveRequest,
 } from '../types'
 
-// Health
+// API service for health checks
 export const healthService = {
   check: async (): Promise<HealthResponse> => {
     const response = await apiClient.get<ApiSuccessResponse<HealthResponse>>('/api/health')
@@ -20,7 +20,7 @@ export const healthService = {
   },
 }
 
-// Auth
+// API service for authentication
 export const authService = {
   login: async (email: string, password: string): Promise<AuthTokenResponse> => {
     const response = await apiClient.post<ApiSuccessResponse<AuthTokenResponse>>('/api/auth/login', {
@@ -44,7 +44,7 @@ export const authService = {
   },
 }
 
-// Tenants
+// API service for tenant management
 export const tenantService = {
   create: async (request: CreateTenantRequest, platformAdminKey: string): Promise<CreateTenantResponse> => {
     const response = await apiClient.post<ApiSuccessResponse<CreateTenantResponse>>(
@@ -60,7 +60,7 @@ export const tenantService = {
   },
 }
 
-// Users
+// API service for user management
 export const userService = {
   register: async (request: RegisterRequest, tenantId: string): Promise<RegisterResponse> => {
     const response = await apiClient.post<ApiSuccessResponse<RegisterResponse>>(

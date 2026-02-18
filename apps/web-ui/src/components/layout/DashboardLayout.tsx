@@ -8,9 +8,11 @@ interface DashboardLayoutProps {
   title: string
 }
 
+// Layout for dashboard pages with sidebar and header
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) => {
   const { clearSession, tenantId, userId } = useSession()
 
+  // Handle user logout
   const handleLogout = () => {
     clearSession()
     window.location.href = '/login'
@@ -18,18 +20,20 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      {/* Sidebar */}
+      {/* Left sidebar navigation */}
       <Sidebar />
 
-      {/* Main Content */}
+      {/* Main content area */}
       <div className="flex-1">
-        {/* Header */}
+        {/* Header bar */}
         <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10">
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
+              {/* Page title */}
               <div>
                 <h1 className="text-3xl font-bold text-slate-900">{title}</h1>
               </div>
+              {/* Session info and logout button */}
               <div className="flex items-center gap-4">
                 {tenantId && (
                   <div className="text-sm border-r border-slate-200 pr-4">
@@ -51,7 +55,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
           </div>
         </header>
 
-        {/* Page Content */}
+        {/* Page content */}
         <main className="p-6">{children}</main>
       </div>
     </div>

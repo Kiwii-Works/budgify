@@ -4,11 +4,13 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, 
 import { useSession } from '../context/SessionContext'
 import { healthService } from '../services/api.service'
 
+// Dashboard home page
 const DashboardPage: React.FC = () => {
   const { tenantId, userId } = useSession()
   const [healthStatus, setHealthStatus] = useState<string>('')
   const [loading, setLoading] = useState(false)
 
+  // Check API health status
   const checkHealth = async () => {
     setLoading(true)
     try {
@@ -21,25 +23,26 @@ const DashboardPage: React.FC = () => {
     }
   }
 
+  // Tab configuration
   const tabs = [
     {
-      label: 'Información',
+      label: 'Session Info',
       value: 'info',
       content: (
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Sesión Actual</CardTitle>
-              <CardDescription>Información de la sesión conectada</CardDescription>
+              <CardTitle>Current Session</CardTitle>
+              <CardDescription>Connected session information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
                 <p className="text-sm text-slate-600">Tenant ID</p>
-                <p className="font-mono text-sm bg-slate-100 p-2 rounded">{tenantId || 'No configurado'}</p>
+                <p className="font-mono text-sm bg-slate-100 p-2 rounded">{tenantId || 'Not configured'}</p>
               </div>
               <div>
                 <p className="text-sm text-slate-600">User ID</p>
-                <p className="font-mono text-sm bg-slate-100 p-2 rounded">{userId || 'No configurado'}</p>
+                <p className="font-mono text-sm bg-slate-100 p-2 rounded">{userId || 'Not configured'}</p>
               </div>
             </CardContent>
           </Card>
@@ -53,19 +56,19 @@ const DashboardPage: React.FC = () => {
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Estado de la API</CardTitle>
-              <CardDescription>Verifica la conexión con el backend</CardDescription>
+              <CardTitle>API Status</CardTitle>
+              <CardDescription>Check backend connection</CardDescription>
             </CardHeader>
             <CardContent>
               {healthStatus && (
                 <Alert variant={healthStatus === 'ok' ? 'success' : 'error'} className="mb-4">
-                  {healthStatus === 'ok' ? '✓ API está funcionando correctamente' : '✕ Error conectando con la API'}
+                  {healthStatus === 'ok' ? '✓ API is running correctly' : '✕ Error connecting to API'}
                 </Alert>
               )}
             </CardContent>
             <CardFooter>
               <Button onClick={checkHealth} isLoading={loading}>
-                Verificar Estado
+                Check Status
               </Button>
             </CardFooter>
           </Card>
@@ -79,8 +82,8 @@ const DashboardPage: React.FC = () => {
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Bienvenido a Budgify</CardTitle>
-            <CardDescription>Tu plataforma de gestión de presupuestos</CardDescription>
+            <CardTitle>Welcome to Budgify</CardTitle>
+            <CardDescription>Your budget management platform</CardDescription>
           </CardHeader>
         </Card>
 

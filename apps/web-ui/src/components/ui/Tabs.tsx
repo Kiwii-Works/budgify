@@ -6,7 +6,9 @@ interface TabsProps {
   onChange?: (value: string) => void
 }
 
+// Tab navigation component for switching between content sections
 export const Tabs: React.FC<TabsProps> = ({ tabs, defaultValue, onChange }) => {
+  // Track which tab is currently active
   const [activeTab, setActiveTab] = React.useState(defaultValue || tabs[0].value)
 
   const handleTabChange = (value: string) => {
@@ -16,6 +18,7 @@ export const Tabs: React.FC<TabsProps> = ({ tabs, defaultValue, onChange }) => {
 
   return (
     <div>
+      {/* Tab navigation buttons */}
       <div className="flex border-b border-slate-200">
         {tabs.map((tab) => (
           <button
@@ -31,6 +34,7 @@ export const Tabs: React.FC<TabsProps> = ({ tabs, defaultValue, onChange }) => {
           </button>
         ))}
       </div>
+      {/* Tab content */}
       <div className="mt-4">
         {tabs.find((tab) => tab.value === activeTab)?.content}
       </div>

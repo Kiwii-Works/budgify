@@ -7,12 +7,14 @@ interface AlertProps {
   onClose?: () => void
 }
 
+// Alert/notification component for displaying messages
 export const Alert: React.FC<AlertProps> = ({
   variant = 'info',
   title,
   children,
   onClose,
 }) => {
+  // Color styles for each alert type
   const variantStyles = {
     success: 'bg-success-50 border-success-200 text-success-800',
     error: 'bg-error-50 border-error-200 text-error-800',
@@ -20,6 +22,7 @@ export const Alert: React.FC<AlertProps> = ({
     info: 'bg-primary-50 border-primary-200 text-primary-800',
   }
 
+  // Icons for each alert type
   const iconClass = {
     success: '✓',
     error: '✕',

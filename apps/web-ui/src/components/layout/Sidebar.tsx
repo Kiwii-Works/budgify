@@ -2,23 +2,27 @@ import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { clsx } from 'clsx'
 
+// Navigation links for the sidebar
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: '📊' },
   { name: 'Tenants', href: '/tenants', icon: '🏢' },
-  { name: 'Usuarios', href: '/users', icon: '👥' },
+  { name: 'Users', href: '/users', icon: '👥' },
   { name: 'Testing', href: '/testing', icon: '🧪' },
 ]
 
+// Left sidebar navigation component
 export const Sidebar: React.FC = () => {
   const location = useLocation()
 
   return (
     <div className="w-64 bg-slate-900 text-white min-h-screen p-6">
+      {/* Logo and branding */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white">Budgify</h1>
         <p className="text-slate-400 text-sm">Budget Manager</p>
       </div>
 
+      {/* Navigation menu */}
       <nav className="space-y-2">
         {navigation.map((item) => (
           <Link

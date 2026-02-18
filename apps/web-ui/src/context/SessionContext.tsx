@@ -1,14 +1,16 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react'
 import { SessionContextType } from '../types'
 
+// Context for managing user session state
 const SessionContext = createContext<SessionContextType | undefined>(undefined)
 
+// Session provider component - wraps app and manages session state
 export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [tenantId, setTenantIdState] = useState<string | null>(null)
   const [userId, setUserIdState] = useState<string | null>(null)
   const [platformAdminKey, setPlatformAdminKeyState] = useState<string | null>(null)
 
-  // Load from localStorage on mount
+  // Load session data from localStorage on component mount
   useEffect(() => {
     const savedTenantId = localStorage.getItem('tenantId')
     const savedUserId = localStorage.getItem('userId')
@@ -19,6 +21,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (savedPlatformAdminKey) setPlatformAdminKeyState(savedPlatformAdminKey)
   }, [])
 
+  // Set tenant ID and persist to localStorage
   const setTenantId = (id: string | null) => {
     setTenantIdState(id)
     if (id) {
@@ -28,6 +31,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }
 
+  // Set user ID and persist to localStorage
   const setUserId = (id: string | null) => {
     setUserIdState(id)
     if (id) {
@@ -37,6 +41,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }
 
+  // Set platform admin key and persist to localStorage
   const setPlatformAdminKey = (key: string | null) => {
     setPlatformAdminKeyState(key)
     if (key) {
@@ -46,6 +51,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }
 
+  // Clear all session data
   const clearSession = () => {
     setTenantIdState(null)
     setUserIdState(null)

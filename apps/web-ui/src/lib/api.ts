@@ -1,9 +1,10 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 import { ApiErrorResponse } from '../types'
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000'
+// Base URL for API - use Vite environment variable or default to localhost
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-// Create axios instance
+// Create axios instance with base configuration
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -11,10 +12,10 @@ export const apiClient: AxiosInstance = axios.create({
   },
 })
 
-// Request interceptor to add headers from session
+// Request interceptor - automatically add session headers to every request
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Get session data from localStorage
+    // Retrieve session data from localStorage
     const tenantId = localStorage.getItem('tenantId')
     const userId = localStorage.getItem('userId')
     const platformAdminKey = localStorage.getItem('platformAdminKey')

@@ -7,6 +7,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   helpText?: string
 }
 
+// Reusable input field component with label and error messages
 export const Input: React.FC<InputProps> = ({ label, error, helpText, className, ...props }) => {
   return (
     <div className="w-full">

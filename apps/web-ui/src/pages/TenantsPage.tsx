@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, 
 import { useSession } from '../context/SessionContext'
 import { tenantService, userService } from '../services/api.service'
 
+// Tenant management page
 const TenantsPage: React.FC = () => {
   const { platformAdminKey, setTenantId, setUserId } = useSession()
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -24,13 +25,14 @@ const TenantsPage: React.FC = () => {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  // Create new tenant with initial admin
   const handleCreateTenant = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setSuccess('')
 
     if (!platformAdminKey) {
-      setError('Platform Admin Key no configurada. Usa el Testing Panel.')
+      setError('Platform Admin Key not configured. Use the Testing Panel.')
       return
     }
 
@@ -55,7 +57,7 @@ const TenantsPage: React.FC = () => {
         setUserId(response.admin_user_id)
       }
 
-      setSuccess(`Tenant "${response.tenant_name}" creado exitosamente`)
+      setSuccess(`Tenant "${response.tenant_name}" created successfully`)
       setFormData({
         tenant_name: '',
         admin_username: '',
@@ -66,26 +68,26 @@ const TenantsPage: React.FC = () => {
       })
       setIsModalOpen(false)
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Error al crear tenant')
+      setError(err.response?.data?.error?.message || 'Error creating tenant')
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <DashboardLayout title="Gestión de Tenants">
+    <DashboardLayout title="Tenant Management">
       <div className="space-y-6">
         {error && <Alert variant="error" onClose={() => setError('')}>{error}</Alert>}
         {success && <Alert variant="success" onClose={() => setSuccess('')}>{success}</Alert>}
 
         <Card>
           <CardHeader>
-            <CardTitle>Crear Nuevo Tenant</CardTitle>
-            <CardDescription>Solo disponible con Platform Admin Key</CardDescription>
+            <CardTitle>Create New Tenant</CardTitle>
+            <CardDescription>Only available with Platform Admin Key</CardDescription>
           </CardHeader>
           <CardFooter>
             <Button onClick={() => setIsModalOpen(true)} disabled={!platformAdminKey}>
-              Crear Tenant
+              Create Tenant
             </Button>
           </CardFooter>
         </Card>
@@ -93,13 +95,13 @@ const TenantsPage: React.FC = () => {
         <Modal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          title="Crear Nuevo Tenant"
+          title="Create New Tenant"
           size="lg"
         >
           <form onSubmit={handleCreateTenant} className="space-y-4">
             <Input
-              label="Nombre del Tenant"
-              placeholder="Mi Empresa"
+              label="Tenant Name"
+              placeholder="My Company"
               name="tenant_name"
               value={formData.tenant_name}
               onChange={handleChange}
@@ -107,10 +109,10 @@ const TenantsPage: React.FC = () => {
             />
 
             <div className="border-t pt-4">
-              <h3 className="font-semibold text-slate-900 mb-4">Admin Inicial</h3>
+              <h3 className="font-semibold text-slate-900 mb-4">Initial Admin</h3>
 
               <Input
-                label="Usuario"
+                label="Username"
                 placeholder="admin"
                 name="admin_username"
                 value={formData.admin_username}
@@ -120,16 +122,16 @@ const TenantsPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <Input
-                  label="Nombre"
-                  placeholder="Juan"
+                  label="First Name"
+                  placeholder="John"
                   name="admin_first_name"
                   value={formData.admin_first_name}
                   onChange={handleChange}
                   required
                 />
                 <Input
-                  label="Apellido"
-                  placeholder="Pérez"
+                  label="Last Name"
+                  placeholder="Doe"
                   name="admin_last_name"
                   value={formData.admin_last_name}
                   onChange={handleChange}
@@ -140,7 +142,7 @@ const TenantsPage: React.FC = () => {
               <Input
                 label="Email"
                 type="email"
-                placeholder="admin@empresa.com"
+                placeholder="admin@company.com"
                 name="admin_email"
                 value={formData.admin_email}
                 onChange={handleChange}
@@ -149,7 +151,7 @@ const TenantsPage: React.FC = () => {
               />
 
               <Input
-                label="Contraseña"
+                label="Password"
                 type="password"
                 placeholder="••••••••"
                 name="admin_password"
@@ -162,10 +164,10 @@ const TenantsPage: React.FC = () => {
 
             <div className="flex gap-3 justify-end pt-4">
               <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>
-                Cancelar
+                Cancel
               </Button>
               <Button type="submit" isLoading={isLoading}>
-                Crear Tenant
+                Create Tenant
               </Button>
             </div>
           </form>

@@ -5,6 +5,7 @@ interface ForgotPasswordFormProps {
   onSuccess?: () => void
 }
 
+// Password reset request form
 export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onSuccess }) => {
   const [email, setEmail] = useState('')
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -17,26 +18,27 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onSucces
     setIsLoading(true)
 
     try {
-      // TODO: Implement actual forgot password with API
+      // TODO: Implement actual password reset with API
       // await authService.requestPasswordReset(email)
       
       setIsSubmitted(true)
       onSuccess?.()
     } catch (err: any) {
-      setError(err.message || 'Error al solicitar reinicio de contraseña')
+      setError(err.message || 'Failed to reset password')
     } finally {
       setIsLoading(false)
     }
   }
 
+  // Show success message
   if (isSubmitted) {
     return (
       <div className="space-y-4">
         <Alert variant="success">
-          Se ha enviado un enlace de reinicio de contraseña a {email}. Por favor revisa tu correo.
+          Password reset link has been sent to {email}. Please check your email.
         </Alert>
         <Button fullWidth variant="secondary" onClick={() => (window.location.href = '/login')}>
-          Volver al Login
+          Back to Login
         </Button>
       </div>
     )
@@ -47,25 +49,25 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onSucces
       {error && <Alert variant="error">{error}</Alert>}
 
       <p className="text-slate-600 text-sm">
-        Ingresa tu correo electrónico y te enviaremos instrucciones para reiniciar tu contraseña.
+        Enter your email address and we'll send you instructions to reset your password.
       </p>
 
       <Input
         type="email"
         label="Email"
-        placeholder="usuario@ejemplo.com"
+        placeholder="user@example.com"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
       />
 
       <Button type="submit" fullWidth isLoading={isLoading}>
-        Enviar Enlace de Reinicio
+        Send Reset Link
       </Button>
 
       <div className="text-center">
         <a href="/login" className="text-primary-600 hover:text-primary-700 text-sm">
-          Volver al inicio de sesión
+          Back to sign in
         </a>
       </div>
     </form>

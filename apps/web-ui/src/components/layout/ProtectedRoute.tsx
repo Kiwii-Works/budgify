@@ -6,8 +6,10 @@ interface ProtectedRouteProps {
   requiredFields?: ('tenantId' | 'userId')[]
 }
 
-// Para esta primera versión, todas las rutas son accesibles
-// En una versión real aquí iría la lógica de autenticación
+// Route wrapper for protected pages
+// TODO: Implement actual authentication checking logic
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  // For now, all routes are accessible
+  // In production, add authentication validation here
   return <>{children}</>
 }

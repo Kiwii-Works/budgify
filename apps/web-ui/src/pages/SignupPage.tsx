@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { AuthLayout } from '../components/layout/AuthLayout'
 import { SignupForm } from '../components/auth/SignupForm'
 
+// User registration page component
 const SignupPage: React.FC = () => {
   const navigate = useNavigate()
 
   return (
-    <AuthLayout title="Crear Cuenta" subtitle="Únete a Budgify">
+    <AuthLayout title="Create Account" subtitle="Join Budgify">
       <SignupForm onSuccess={() => navigate('/dashboard')} />
     </AuthLayout>
   )
