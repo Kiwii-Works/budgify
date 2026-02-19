@@ -4,7 +4,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, 
 import { useSession } from '../context/SessionContext'
 
 // Testing panel for manual header configuration during development
-const TestingPanel: React.FC = () => {\n  const { tenantId, userId, platformAdminKey, setTenantId, setUserId, setPlatformAdminKey } = useSession()
+const TestingPanel: React.FC = () => {
+  const { tenantId, userId, platformAdminKey, setTenantId, setUserId, setPlatformAdminKey } = useSession()
 
   // Local state for editing headers
   const [tempTenantId, setTempTenantId] = useState(tenantId || '')

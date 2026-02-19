@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import { Button, Input, Alert } from '../ui'
+import { useSession } from '../../context/SessionContext'
+import { authService } from '../../services/api.service'
 
 interface LoginFormProps {
   onSuccess?: () => void
@@ -7,8 +9,10 @@ interface LoginFormProps {
 
 // Login form component
 export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
+  const { setTenantId, setUserId } = useSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [tenantId, setTenantIdField] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -18,16 +22,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     setIsLoading(true)
 
     try {
-      // TODO: Implement actual authentication with backend
-      if (email && password) {
-        localStorage.setItem('accessToken', 'mock-token')
-        localStorage.setItem('refreshToken', 'mock-refresh-token')
-        onSuccess?.()
-      } else {
-        setError('Please fill in all fields')
-      }
+      const result = await authService.login(email, password, tenantId)
+      localStorage.setItem('accessToken', result.access_token)
+      localStorage.setItem('refreshToken', result.refresh_token)
+      setTenantId(result.tenant_id)
+      setUserId(result.user_id)
+      onSuccess?.()
     } catch (err: any) {
-      setError(err.message || 'Login failed')
+      const message = err.response?.data?.detail || err.message || 'Login failed'
+      setError(message)
     } finally {
       setIsLoading(false)
     }
@@ -52,6 +55,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
         placeholder="••••••••"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
+        required
+      />
+
+      <Input
+        type="text"
+        label="Tenant ID"
+        placeholder="Enter your tenant ID"
+        value={tenantId}
+        onChange={(e) => setTenantIdField(e.target.value)}
         required
       />
 

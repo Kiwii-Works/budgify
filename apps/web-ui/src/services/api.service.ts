@@ -22,10 +22,11 @@ export const healthService = {
 
 // API service for authentication
 export const authService = {
-  login: async (email: string, password: string): Promise<AuthTokenResponse> => {
+  login: async (email: string, password: string, tenantId: string): Promise<AuthTokenResponse> => {
     const response = await apiClient.post<ApiSuccessResponse<AuthTokenResponse>>('/api/auth/login', {
       email,
       password,
+      tenant_id: tenantId,
     })
     return response.data.data
   },

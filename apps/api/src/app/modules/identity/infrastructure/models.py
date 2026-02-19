@@ -210,6 +210,39 @@ class UserTenantRole(Base):
     )
 
 
+# UserRefreshToken Model
+class UserRefreshToken(Base):
+    """User refresh token ORM model for JWT token rotation."""
+
+    __tablename__ = "user_refresh_tokens"
+
+    refresh_token_id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id = Column(
+        PGUUID(as_uuid=True), ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False
+    )
+    tenant_id = Column(
+        PGUUID(as_uuid=True), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False
+    )
+    token_hash = Column(Text, nullable=False)
+    expires_at = Column(TIMESTAMP(timezone=True), nullable=False)
+    revoked_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, default=datetime.utcnow)
+    last_used_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    created_by = Column(PGUUID(as_uuid=True), nullable=True)
+
+    # Indexes for efficient queries
+    __table_args__ = (
+        Index("ix_user_refresh_tokens_user_tenant", "user_id", "tenant_id"),
+        Index("ix_user_refresh_tokens_expires_at", "expires_at"),
+        Index("ix_user_refresh_tokens_token_hash", "token_hash"),
+        Index(
+            "ix_user_refresh_tokens_revoked_at_partial",
+            "revoked_at",
+            postgresql_where=text("revoked_at IS NULL"),
+        ),
+    )
+
+
 # PasswordResetToken Model
 class PasswordResetToken(Base):
     """Password reset token ORM model."""

@@ -12,6 +12,7 @@ from app.modules.identity.domain.entities import (
     UserTenantMembership,
     UserTenantRole,
 )
+from app.modules.identity.domain.refresh_token import RefreshToken
 from app.modules.identity.infrastructure.models import (
     OperationType,
 )
@@ -35,6 +36,9 @@ from app.modules.identity.infrastructure.models import (
 )
 from app.modules.identity.infrastructure.models import (
     UserTenantRole as UserTenantRoleModel,
+)
+from app.modules.identity.infrastructure.models import (
+    UserRefreshToken as UserRefreshTokenModel,
 )
 
 
@@ -127,6 +131,47 @@ class SQLAlchemyUserRepository:
             password_hash=model.password_hash,
             is_active=model.is_active,
             is_platform_admin=model.is_platform_admin,
+            created_by=model.created_by,
+            modified_by=model.modified_by,
+            created_date=model.created_date,
+            created_date_utc=model.created_date_utc,
+            modified_date=model.modified_date,
+            modified_date_utc=model.modified_date_utc,
+        )
+
+    def has_tenant_membership(self, user_id: UUID, tenant_id: UUID) -> bool:
+        """Check if user has membership in tenant."""
+        return (
+            self.session.query(UserTenantModel)
+            .filter(
+                UserTenantModel.user_id == user_id,
+                UserTenantModel.tenant_id == tenant_id,
+            )
+            .count()
+            > 0
+        )
+
+    def get_user_roles_for_tenant(self, user_id: UUID, tenant_id: UUID) -> list[Role]:
+        """Get all roles assigned to user in a specific tenant."""
+        role_models = (
+            self.session.query(RoleModel)
+            .join(
+                UserTenantRoleModel,
+                RoleModel.role_id == UserTenantRoleModel.role_id,
+            )
+            .filter(
+                UserTenantRoleModel.user_id == user_id,
+                UserTenantRoleModel.tenant_id == tenant_id,
+            )
+            .all()
+        )
+        return [self._role_to_entity(r) for r in role_models]
+
+    def _role_to_entity(self, model: RoleModel) -> Role:
+        """Convert ORM Role model to domain entity."""
+        return Role(
+            role_id=model.role_id,
+            role_name=model.role_name,
             created_by=model.created_by,
             modified_by=model.modified_by,
             created_date=model.created_date,
@@ -341,3 +386,79 @@ class SQLAlchemyAuditRepository:
         )
         self.session.add(detail)
         self.session.flush()
+
+class SQLAlchemyRefreshTokenRepository:
+    """SQLAlchemy implementation of RefreshTokenRepository."""
+
+    def __init__(self, session: Session):
+        self.session = session
+
+    def create(self, refresh_token: RefreshToken) -> RefreshToken:
+        """Create a new refresh token record."""
+        token_model = UserRefreshTokenModel(
+            refresh_token_id=refresh_token.refresh_token_id,
+            user_id=refresh_token.user_id,
+            tenant_id=refresh_token.tenant_id,
+            token_hash=refresh_token.token_hash,
+            expires_at=refresh_token.expires_at,
+            revoked_at=refresh_token.revoked_at,
+            created_at=refresh_token.created_at,
+            last_used_at=refresh_token.last_used_at,
+            created_by=refresh_token.created_by,
+        )
+        self.session.add(token_model)
+        self.session.flush()
+        return self._to_entity(token_model)
+
+    def get_by_token_hash(
+        self,
+        token_hash: str,
+        tenant_id: UUID | None = None,
+    ) -> RefreshToken | None:
+        """Get refresh token by its hash."""
+        query = self.session.query(UserRefreshTokenModel).filter(
+            UserRefreshTokenModel.token_hash == token_hash
+        )
+        if tenant_id:
+            query = query.filter(UserRefreshTokenModel.tenant_id == tenant_id)
+        
+        token_model = query.first()
+        return self._to_entity(token_model) if token_model else None
+
+    def revoke(
+        self,
+        refresh_token_id: UUID,
+        tenant_id: UUID,
+    ) -> None:
+        """Revoke a refresh token by setting revoked_at."""
+        token_model = self.session.query(UserRefreshTokenModel).filter(
+            UserRefreshTokenModel.refresh_token_id == refresh_token_id,
+            UserRefreshTokenModel.tenant_id == tenant_id,
+        ).first()
+        
+        if token_model:
+            token_model.revoked_at = datetime.now(UTC)
+            self.session.flush()
+
+    def delete_expired(self) -> int:
+        """Delete expired refresh tokens (older than expiry date)."""
+        now = datetime.now(UTC)
+        result = self.session.query(UserRefreshTokenModel).filter(
+            UserRefreshTokenModel.expires_at <= now
+        ).delete()
+        self.session.flush()
+        return result
+
+    def _to_entity(self, model: UserRefreshTokenModel) -> RefreshToken:
+        """Convert ORM model to domain entity."""
+        return RefreshToken(
+            refresh_token_id=model.refresh_token_id,
+            user_id=model.user_id,
+            tenant_id=model.tenant_id,
+            token_hash=model.token_hash,
+            expires_at=model.expires_at,
+            revoked_at=model.revoked_at,
+            created_at=model.created_at,
+            last_used_at=model.last_used_at,
+            created_by=model.created_by,
+        )

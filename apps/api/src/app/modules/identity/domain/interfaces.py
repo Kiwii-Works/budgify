@@ -10,6 +10,7 @@ from app.modules.identity.domain.entities import (
     UserTenantMembership,
     UserTenantRole,
 )
+from app.modules.identity.domain.refresh_token import RefreshToken
 
 
 class UserRepository(Protocol):
@@ -76,3 +77,22 @@ class AuditRepository(Protocol):
         operation_type: str,
         tenant_id: UUID | None,
     ) -> None: ...
+
+class RefreshTokenRepository(Protocol):
+    """Refresh token repository interface."""
+
+    async def create(self, refresh_token: RefreshToken) -> RefreshToken: ...
+
+    async def get_by_token_hash(
+        self,
+        token_hash: str,
+        tenant_id: UUID | None = None,
+    ) -> RefreshToken | None: ...
+
+    async def revoke(
+        self,
+        refresh_token_id: UUID,
+        tenant_id: UUID,
+    ) -> None: ...
+
+    async def delete_expired(self) -> int: ...
