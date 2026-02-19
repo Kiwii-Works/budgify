@@ -72,9 +72,6 @@ def get_tenant_id(x_tenant_id: UUID = Header(...)) -> UUID:
     return x_tenant_id
 
 
-def get_current_user_id(x_user_id: UUID = Header(...)) -> UUID:
-    """Extract current user ID from header (stub for Phase 1B)."""
-    return x_user_id
 
 
 # ===== Endpoints =====
@@ -215,10 +212,16 @@ async def register(
 async def update_user(
     user_id: UUID,
     request: AdminUpdateUserRequest,
-    current_user_id: UUID = Depends(get_current_user_id),
+    current_user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Update user (admin only, except password)."""
+    """Update user (SUDO role required)."""
+    if not current_user.has_role("SUDO"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions: SUDO role required",
+        )
+
     transaction_uid = uuid4()
 
     try:
@@ -247,7 +250,7 @@ async def update_user(
         user = service.execute(
             user_id=user_id,
             updates=updates,
-            modified_by=current_user_id,
+            modified_by=current_user.user_id,
             transaction_uid=transaction_uid,
         )
 
@@ -288,10 +291,16 @@ async def update_user(
 async def toggle_active(
     user_id: UUID,
     request: AdminToggleActiveRequest,
-    current_user_id: UUID = Depends(get_current_user_id),
+    current_user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Toggle user is_active (admin only)."""
+    """Toggle user is_active (SUDO role required)."""
+    if not current_user.has_role("SUDO"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions: SUDO role required",
+        )
+
     transaction_uid = uuid4()
 
     try:
@@ -309,7 +318,7 @@ async def toggle_active(
         user = service.execute(
             user_id=user_id,
             is_active=request.is_active,
-            modified_by=current_user_id,
+            modified_by=current_user.user_id,
             transaction_uid=transaction_uid,
         )
 
