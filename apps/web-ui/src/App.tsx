@@ -10,6 +10,7 @@ const DashboardPage = React.lazy(() => import('./pages/DashboardPage'))
 const TenantsPage = React.lazy(() => import('./pages/TenantsPage'))
 const UsersPage = React.lazy(() => import('./pages/UsersPage'))
 const TestingPanel = React.lazy(() => import('./pages/TestingPanel'))
+const FinancePage = React.lazy(() => import('./pages/FinancePage'))
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -32,6 +33,8 @@ function App() {
             <Route path="/tenants" element={<TenantsPage />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/testing" element={<TestingPanel />} />
+            {/* Finance route */}
+            <Route path="/finance" element={<FinancePage />} />
             {/* Default route redirect */}
             <Route path="/" element={<Navigate to="/login" replace />} />
           </Routes>

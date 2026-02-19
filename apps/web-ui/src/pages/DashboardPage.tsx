@@ -3,6 +3,7 @@ import { DashboardLayout } from '../components/layout/DashboardLayout'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Button, Tabs, Alert } from '../components/ui'
 import { useSession } from '../context/SessionContext'
 import { healthService } from '../services/api.service'
+import FinancePage from './FinancePage'
 
 // Dashboard home page
 const DashboardPage: React.FC = () => {
@@ -74,7 +75,7 @@ const DashboardPage: React.FC = () => {
           </Card>
         </div>
       ),
-    },
+    }
   ]
 
   return (
