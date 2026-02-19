@@ -373,6 +373,7 @@ class SQLAlchemyAuditRepository:
         entity_id: UUID,
         operation_type: str,
         tenant_id: UUID | None,
+        changes: dict | None = None,
     ) -> None:
         """Log transaction details to transaction_log_details."""
         detail = TransactionLogDetailsModel(
@@ -381,7 +382,7 @@ class SQLAlchemyAuditRepository:
             entity_domain=entity_domain,
             entity_id=entity_id,
             transaction_description=OperationType[operation_type],
-            changes=None,  # Optional for Phase 1B
+            changes=changes,
             tenant_id=tenant_id,
         )
         self.session.add(detail)

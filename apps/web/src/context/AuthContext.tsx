@@ -1,3 +1,5 @@
+'use client'
+
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react'
 import { apiClient, setAccessToken, clearTokens } from '@/lib/api/client'
 

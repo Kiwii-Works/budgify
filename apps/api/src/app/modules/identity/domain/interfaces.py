@@ -76,6 +76,7 @@ class AuditRepository(Protocol):
         entity_id: UUID,
         operation_type: str,
         tenant_id: UUID | None,
+        changes: dict | None = None,
     ) -> None: ...
 
 class RefreshTokenRepository(Protocol):
