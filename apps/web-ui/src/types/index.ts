@@ -123,3 +123,89 @@ export interface SessionContextType {
   setPlatformAdminKey: (key: string | null) => void
   clearSession: () => void
 }
+
+// ===== FINANCE TYPES =====
+
+// Account Categories
+export interface AccountCategory {
+  category_id: string
+  tenant_id: string
+  name: string
+  description?: string
+  is_active: boolean
+}
+
+export interface CreateAccountCategoryRequest {
+  name: string
+  description?: string
+}
+
+export interface UpdateAccountCategoryRequest {
+  name?: string
+  description?: string
+  is_active?: boolean
+}
+
+// Accounts
+export interface Account {
+  account_id: string
+  tenant_id: string
+  category_id: string
+  name: string
+  description?: string
+  type: 'INCOME' | 'EXPENSE'
+  is_active: boolean
+}
+
+export interface CreateAccountRequest {
+  category_id: string
+  name: string
+  description?: string
+  type: 'INCOME' | 'EXPENSE'
+}
+
+export interface UpdateAccountRequest {
+  category_id?: string
+  name?: string
+  description?: string
+  type?: 'INCOME' | 'EXPENSE'
+  is_active?: boolean
+}
+
+// Transactions
+export interface Transaction {
+  transaction_id: string
+  tenant_id: string
+  account_id: string
+  amount: number
+  currency: string
+  occurred_on: string
+  notes?: string
+  direction: 'INCOME' | 'EXPENSE'
+  created_by: string
+  created_date: string
+  modified_by?: string
+  modified_date?: string
+}
+
+export interface CreateTransactionRequest {
+  account_id: string
+  amount: number
+  currency?: string
+  occurred_on: string
+  notes?: string
+}
+
+export interface UpdateTransactionRequest {
+  account_id?: string
+  amount?: number
+  currency?: string
+  occurred_on?: string
+  notes?: string
+}
+
+// Pagination for Finance endpoints
+export interface FinancePaginationParams {
+  page?: number
+  page_size?: number
+}

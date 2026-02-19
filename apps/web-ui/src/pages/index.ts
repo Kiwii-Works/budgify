@@ -5,6 +5,7 @@ import { DashboardPage } from './DashboardPage'
 import { TenantsPage } from './TenantsPage'
 import { UsersPage } from './UsersPage'
 import { TestingPanel } from './TestingPanel'
+import FinancePage from './FinancePage'
 
 export {
   LoginPage,
@@ -14,4 +15,5 @@ export {
   TenantsPage,
   UsersPage,
   TestingPanel,
+  FinancePage,
 }
