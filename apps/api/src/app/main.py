@@ -9,6 +9,7 @@ from fastapi.responses import RedirectResponse
 
 from app.core.config import settings
 from app.core.logging import get_logger, setup_logging
+from app.modules.finance.api.routes import router as finance_router
 from app.modules.health.api.routes import router as health_router
 from app.modules.identity.api.routes import router as identity_router
 
@@ -58,6 +59,7 @@ app.add_middleware(
 # Register routers
 app.include_router(health_router, prefix=settings.api_prefix)
 app.include_router(identity_router, prefix=settings.api_prefix)
+app.include_router(finance_router, prefix=settings.api_prefix)
 
 
 @app.get("/", include_in_schema=False)
