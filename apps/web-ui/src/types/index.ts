@@ -37,6 +37,7 @@ export interface HealthResponse {
 export interface LoginRequest {
   email: string
   password: string
+  tenant_id: string
 }
 
 export interface AuthTokenResponse {
@@ -44,6 +45,8 @@ export interface AuthTokenResponse {
   refresh_token: string
   token_type: string
   expires_in: number
+  user_id: string
+  tenant_id: string
 }
 
 export interface RefreshTokenRequest {

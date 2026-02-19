@@ -45,16 +45,24 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess }) => {
 
     setIsLoading(true)
     try {
-      // TODO: Implement actual signup with API
-      // const response = await userService.register({...}, tenant_id)
-      
-      // Mock success
+      const { userService } = await import('../../services/api.service')
+      const response = await userService.register(
+        {
+          username: formData.username,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          email: formData.email,
+          phone_number: formData.phone_number || undefined,
+          password: formData.password,
+        },
+        formData.tenant_id,
+      )
       setTenantId(formData.tenant_id)
-      setUserId('mock-user-id')
-      localStorage.setItem('accessToken', 'mock-token')
+      setUserId(response.user_id)
       onSuccess?.()
     } catch (err: any) {
-      setError(err.message || 'Signup failed')
+      const message = err.response?.data?.detail || err.message || 'Signup failed'
+      setError(message)
     } finally {
       setIsLoading(false)
     }
