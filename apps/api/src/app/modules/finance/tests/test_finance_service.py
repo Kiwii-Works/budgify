@@ -8,6 +8,8 @@ from uuid import uuid4
 import pytest
 
 from app.modules.finance.application.services import (
+    BudgetMonthService,
+    BudgetAllocationService,
     CreateAccountService,
     CreateCategoryService,
     CreateTransactionService,
@@ -15,8 +17,66 @@ from app.modules.finance.application.services import (
     UpdateAccountService,
     UpdateCategoryService,
     UpdateTransactionService,
+    WalletAccountService,
 )
-from app.modules.finance.domain.entities import Account, AccountCategory, Transaction
+from app.modules.finance.domain.entities import Account, AccountCategory, BudgetMonth, BudgetAllocation, Transaction, WalletAccount
+# ── WalletAccount Helper ─────────────────────────────────────────────────────
+def _make_wallet_account(**kwargs) -> WalletAccount:
+    defaults = dict(
+        wallet_account_id=uuid4(),
+        tenant_id=uuid4(),
+        name="Main Wallet",
+        type="CASH",
+        currency="CAD",
+        opening_balance=Decimal("100.00"),
+        is_active=True,
+    )
+    defaults.update(kwargs)
+    return WalletAccount(**defaults)
+
+
+# ── WalletAccountService Tests ───────────────────────────────────────────────
+class TestWalletAccountService:
+    def test_create_wallet_account(self):
+        repo = MagicMock()
+        wallet = _make_wallet_account()
+        repo.create.return_value = wallet
+        service = WalletAccountService(repo)
+        result = service.create_wallet_account(wallet)
+        assert result == wallet
+
+    def test_get_wallet_account(self):
+        repo = MagicMock()
+        wallet = _make_wallet_account()
+        repo.get_by_id.return_value = wallet
+        service = WalletAccountService(repo)
+        result = service.get_wallet_account(wallet.wallet_account_id, wallet.tenant_id)
+        assert result == wallet
+
+    def test_list_wallet_accounts(self):
+        repo = MagicMock()
+        wallet = _make_wallet_account()
+        repo.list.return_value = ([wallet], 1)
+        service = WalletAccountService(repo)
+        items, total = service.list_wallet_accounts(wallet.tenant_id, 1, 10)
+        assert items == [wallet]
+        assert total == 1
+
+    def test_update_wallet_account(self):
+        repo = MagicMock()
+        wallet = _make_wallet_account()
+        repo.update.return_value = wallet
+        service = WalletAccountService(repo)
+        result = service.update_wallet_account(wallet)
+        assert result == wallet
+
+    def test_deactivate_wallet_account(self):
+        repo = MagicMock()
+        service = WalletAccountService(repo)
+        wallet_id = uuid4()
+        tenant_id = uuid4()
+        service.deactivate_wallet_account(wallet_id, tenant_id)
+        repo.soft_delete.assert_called_once_with(wallet_id, tenant_id)
 from app.modules.finance.domain.exceptions import (
     AccountAlreadyExistsError,
     AccountCategoryAlreadyExistsError,
@@ -89,6 +149,26 @@ def _make_transaction(**kwargs) -> Transaction:
     )
     defaults.update(kwargs)
     return Transaction(**defaults)
+
+
+def _make_budget_month(**kwargs) -> BudgetMonth:
+    now = datetime.now(UTC)
+    defaults = dict(
+        budget_month_id=uuid4(),
+        tenant_id=uuid4(),
+        month=date(2025, 2, 1),
+        status="DRAFT",
+        currency="CAD",
+        closed_at=None,
+        created_by=uuid4(),
+        modified_by=None,
+        created_date=now.replace(tzinfo=None),
+        created_date_utc=now,
+        modified_date=None,
+        modified_date_utc=None,
+    )
+    defaults.update(kwargs)
+    return BudgetMonth(**defaults)
 
 
 def _mock_audit() -> MagicMock:
@@ -341,3 +421,69 @@ class TestDeleteTransactionService:
         service = DeleteTransactionService(txn_repo, _mock_audit())
         with pytest.raises(TransactionNotFoundError):
             service.execute(uuid4(), uuid4(), uuid4())
+
+
+# ── BudgetMonthService ───────────────────────────────────────────────────────
+
+class TestBudgetMonthService:
+    def test_create_budget_month_success(self):
+        repo = MagicMock()
+        repo.get_by_month.return_value = None
+        repo.create.side_effect = lambda b: b
+        audit_repo = MagicMock()
+        service = BudgetMonthService(repo, audit_repo)
+        tenant_id = uuid4()
+        user_id = uuid4()
+        month = date(2025, 2, 1)
+        result = service.create_budget_month(tenant_id, month, user_id)
+        assert result.tenant_id == tenant_id
+        assert result.month == month
+        assert result.status == "DRAFT"
+
+    def test_create_budget_month_conflict(self):
+        repo = MagicMock()
+        repo.get_by_month.return_value = _make_budget_month()
+        audit_repo = MagicMock()
+        service = BudgetMonthService(repo, audit_repo)
+        with pytest.raises(Exception):
+            service.create_budget_month(uuid4(), date(2025, 2, 1), uuid4())
+
+
+# ── BudgetAllocationService ───────────────────────────────────────────────────
+
+class TestBudgetAllocationService:
+    def test_close_budget_month_success(self):
+        repo = MagicMock()
+        budget = _make_budget_month()
+        repo.get_by_id.return_value = budget
+        repo.update.side_effect = lambda b: b
+        audit_repo = MagicMock()
+        service = BudgetMonthService(repo, audit_repo)
+        result = service.close_budget_month(budget.budget_month_id, budget.tenant_id, uuid4())
+        assert result.status == "CLOSED"
+        assert result.closed_at is not None
+
+    def test_close_budget_month_already_closed(self):
+        repo = MagicMock()
+        budget = _make_budget_month(status="CLOSED")
+        repo.get_by_id.return_value = budget
+        audit_repo = MagicMock()
+        service = BudgetMonthService(repo, audit_repo)
+        with pytest.raises(Exception):
+            service.close_budget_month(budget.budget_month_id, budget.tenant_id, uuid4())
+
+
+    def test_bulk_update_allocations(self):
+        repo = MagicMock()
+        repo.get_by_budget_and_category.return_value = None
+        repo.bulk_update.side_effect = lambda allocs: allocs
+        audit_repo = MagicMock()
+        service = BudgetAllocationService(repo, audit_repo)
+        budget_month_id = uuid4()
+        user_id = uuid4()
+        allocations = [
+            {"category_id": uuid4(), "planned_amount": "100.00"},
+            {"category_id": uuid4(), "planned_amount": "200.00"},
+        ]
+        result = service.bulk_update_allocations(budget_month_id, allocations, user_id)
+        assert len(result) == 2

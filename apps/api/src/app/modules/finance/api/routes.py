@@ -11,6 +11,8 @@ from app.core.dependencies.auth import CurrentUser, get_current_user
 from app.core.errors import ConflictError, NotFoundError
 from app.core.response import create_paginated_response, create_success_response
 from app.modules.finance.application.services import (
+    BudgetMonthService,
+    BudgetAllocationService,
     CreateAccountService,
     CreateCategoryService,
     CreateTransactionService,
@@ -18,12 +20,16 @@ from app.modules.finance.application.services import (
     UpdateAccountService,
     UpdateCategoryService,
     UpdateTransactionService,
+    WalletAccountService,
 )
 from app.modules.finance.domain.exceptions import AccountInactiveError
 from app.modules.finance.infrastructure.repositories import (
     SQLAlchemyAccountCategoryRepository,
     SQLAlchemyAccountRepository,
     SQLAlchemyTransactionRepository,
+    SQLAlchemyBudgetMonthRepository,
+    SQLAlchemyBudgetAllocationRepository,
+    SQLAlchemyWalletAccountRepository,
 )
 from app.modules.finance.schemas.finance import (
     AccountResponse,
@@ -35,7 +41,127 @@ from app.modules.finance.schemas.finance import (
     UpdateAccountRequest,
     UpdateCategoryRequest,
     UpdateTransactionRequest,
+    BudgetMonthCreateRequest,
+    BudgetMonthResponse,
+    BudgetAllocationRequest,
+    BudgetAllocationResponse,
+    BudgetSummaryResponse,
+    CreateWalletAccountRequest,
+    UpdateWalletAccountRequest,
+    WalletAccountResponse,
 )
+
+router = APIRouter(tags=["finance"])
+
+# ── Wallet Accounts ─────────────────────────────────────────────────────────
+
+@router.post("/wallet-accounts", status_code=status.HTTP_201_CREATED)
+async def create_wallet_account(
+    request: CreateWalletAccountRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _require_editor(current_user)
+    repo = SQLAlchemyWalletAccountRepository(db)
+    service = WalletAccountService(repo)
+    from uuid import uuid4
+    from decimal import Decimal
+    entity = service.create_wallet_account(
+        wallet_account=request_to_entity(request, current_user.tenant_id, uuid4())
+    )
+    return create_success_response(WalletAccountResponse(
+        wallet_account_id=str(entity.wallet_account_id),
+        tenant_id=str(entity.tenant_id),
+        name=entity.name,
+        type=entity.type,
+        currency=entity.currency,
+        opening_balance=entity.opening_balance,
+        is_active=entity.is_active,
+    ).model_dump())
+
+
+@router.get("/wallet-accounts")
+async def list_wallet_accounts(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    repo = SQLAlchemyWalletAccountRepository(db)
+    service = WalletAccountService(repo)
+    items, total = service.list_wallet_accounts(current_user.tenant_id, page, page_size)
+    return create_paginated_response(
+        data=[WalletAccountResponse(
+            wallet_account_id=str(a.wallet_account_id),
+            tenant_id=str(a.tenant_id),
+            name=a.name,
+            type=a.type,
+            currency=a.currency,
+            opening_balance=a.opening_balance,
+            is_active=a.is_active,
+        ).model_dump() for a in items],
+        page=page,
+        page_size=page_size,
+        total=total,
+    )
+
+
+@router.patch("/wallet-accounts/{wallet_account_id}")
+async def update_wallet_account(
+    wallet_account_id: UUID,
+    request: UpdateWalletAccountRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _require_editor(current_user)
+    repo = SQLAlchemyWalletAccountRepository(db)
+    service = WalletAccountService(repo)
+    entity = service.get_wallet_account(wallet_account_id, current_user.tenant_id)
+    if not entity:
+        raise HTTPException(status_code=404, detail="Wallet account not found")
+    # Update fields
+    for field, value in request.model_dump(exclude_unset=True).items():
+        setattr(entity, field, value)
+    updated = service.update_wallet_account(entity)
+    return create_success_response(WalletAccountResponse(
+        wallet_account_id=str(updated.wallet_account_id),
+        tenant_id=str(updated.tenant_id),
+        name=updated.name,
+        type=updated.type,
+        currency=updated.currency,
+        opening_balance=updated.opening_balance,
+        is_active=updated.is_active,
+    ).model_dump())
+
+
+@router.delete("/wallet-accounts/{wallet_account_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def deactivate_wallet_account(
+    wallet_account_id: UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _require_sudo(current_user)
+    repo = SQLAlchemyWalletAccountRepository(db)
+    service = WalletAccountService(repo)
+    entity = service.get_wallet_account(wallet_account_id, current_user.tenant_id)
+    if not entity:
+        raise HTTPException(status_code=404, detail="Wallet account not found")
+    service.deactivate_wallet_account(wallet_account_id, current_user.tenant_id)
+    return None
+
+
+# --- Helper ---
+def request_to_entity(request: CreateWalletAccountRequest, tenant_id: UUID, wallet_account_id: UUID):
+    from decimal import Decimal
+    return WalletAccount(
+        wallet_account_id=wallet_account_id,
+        tenant_id=tenant_id,
+        name=request.name,
+        type=request.type.value if hasattr(request.type, 'value') else str(request.type),
+        currency=request.currency,
+        opening_balance=Decimal(request.opening_balance),
+        is_active=True,
+    )
 from app.modules.identity.infrastructure.repositories import SQLAlchemyAuditRepository
 
 router = APIRouter(prefix="/finance", tags=["finance"])
@@ -523,3 +649,69 @@ async def delete_transaction(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
+
+
+# ── Budgets ──────────────────────────────────────────────────────────────────
+
+@router.post("/budgets", response_model=BudgetMonthResponse, status_code=status.HTTP_201_CREATED)
+async def create_budget_month(
+    req: BudgetMonthCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    _require_editor(current_user)
+    repo = SQLAlchemyBudgetMonthRepository(db)
+    audit_repo = SQLAlchemyAuditRepository(db)
+    service = BudgetMonthService(repo, audit_repo)
+    try:
+        budget = service.create_budget_month(current_user.tenant_id, req.month, current_user.user_id, req.currency)
+    except Exception as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    return create_success_response(BudgetMonthResponse(**budget.__dict__))
+
+
+@router.get("/budgets/by-month", response_model=BudgetMonthResponse)
+async def get_budget_month_by_month(
+    month: date = Query(...),
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    repo = SQLAlchemyBudgetMonthRepository(db)
+    audit_repo = SQLAlchemyAuditRepository(db)
+    service = BudgetMonthService(repo, audit_repo)
+    budget = service.get_budget_month(current_user.tenant_id, month)
+    if not budget:
+        raise HTTPException(status_code=404, detail="Budget month not found")
+    return create_success_response(BudgetMonthResponse(**budget.__dict__))
+
+
+@router.put("/budgets/{budget_month_id}/allocations", response_model=list[BudgetAllocationResponse])
+async def bulk_update_allocations(
+    budget_month_id: UUID,
+    req: list[BudgetAllocationRequest],
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    _require_editor(current_user)
+    repo = SQLAlchemyBudgetAllocationRepository(db)
+    audit_repo = SQLAlchemyAuditRepository(db)
+    service = BudgetAllocationService(repo, audit_repo)
+    allocations = service.bulk_update_allocations(budget_month_id, [a.dict() for a in req], current_user.user_id)
+    return [BudgetAllocationResponse(**a.__dict__) for a in allocations]
+
+
+@router.post("/budgets/{budget_month_id}/close", response_model=BudgetMonthResponse)
+async def close_budget_month(
+    budget_month_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    _require_sudo(current_user)
+    repo = SQLAlchemyBudgetMonthRepository(db)
+    audit_repo = SQLAlchemyAuditRepository(db)
+    service = BudgetMonthService(repo, audit_repo)
+    try:
+        budget = service.close_budget_month(budget_month_id, current_user.tenant_id, current_user.user_id)
+    except Exception as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    return create_success_response(BudgetMonthResponse(**budget.__dict__))

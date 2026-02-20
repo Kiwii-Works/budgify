@@ -7,12 +7,79 @@ from uuid import UUID
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.modules.finance.domain.entities import Account, AccountCategory, Transaction
+from app.modules.finance.domain.entities import (
+    Account,
+    AccountCategory,
+    BudgetMonth,
+    BudgetAllocation,
+    Transaction,
+    WalletAccount,
+)
 from app.modules.finance.infrastructure.models import (
     Account as AccountModel,
     AccountCategory as AccountCategoryModel,
+    BudgetMonth as BudgetMonthModel,
+    BudgetAllocation as BudgetAllocationModel,
     FinancialTransaction as TransactionModel,
+    WalletAccount as WalletAccountModel,
 )
+# ──────────────── Wallet Accounts ────────────────
+class SQLAlchemyWalletAccountRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def create(self, wallet_account: WalletAccount) -> WalletAccount:
+        model = WalletAccountModel(
+            wallet_account_id=wallet_account.wallet_account_id,
+            tenant_id=wallet_account.tenant_id,
+            name=wallet_account.name,
+            type=wallet_account.type,
+            currency=wallet_account.currency,
+            opening_balance=wallet_account.opening_balance,
+            is_active=wallet_account.is_active,
+        )
+        self.session.add(model)
+        self.session.commit()
+        return self._to_entity(model)
+
+    def get_by_id(self, wallet_account_id: UUID, tenant_id: UUID) -> WalletAccount | None:
+        model = self.session.query(WalletAccountModel).filter_by(wallet_account_id=wallet_account_id, tenant_id=tenant_id).first()
+        return self._to_entity(model) if model else None
+
+    def list(self, tenant_id: UUID, page: int, page_size: int) -> tuple[list[WalletAccount], int]:
+        q = self.session.query(WalletAccountModel).filter_by(tenant_id=tenant_id, is_active=True)
+        total = q.count()
+        models = q.offset((page - 1) * page_size).limit(page_size).all()
+        return [self._to_entity(m) for m in models], total
+
+    def update(self, wallet_account: WalletAccount) -> WalletAccount:
+        model = self.session.query(WalletAccountModel).filter_by(wallet_account_id=wallet_account.wallet_account_id, tenant_id=wallet_account.tenant_id).first()
+        if not model:
+            raise ValueError("WalletAccount not found")
+        model.name = wallet_account.name
+        model.type = wallet_account.type
+        model.currency = wallet_account.currency
+        model.opening_balance = wallet_account.opening_balance
+        model.is_active = wallet_account.is_active
+        self.session.commit()
+        return self._to_entity(model)
+
+    def soft_delete(self, wallet_account_id: UUID, tenant_id: UUID) -> None:
+        model = self.session.query(WalletAccountModel).filter_by(wallet_account_id=wallet_account_id, tenant_id=tenant_id).first()
+        if model:
+            model.is_active = False
+            self.session.commit()
+
+    def _to_entity(self, model: WalletAccountModel) -> WalletAccount:
+        return WalletAccount(
+            wallet_account_id=model.wallet_account_id,
+            tenant_id=model.tenant_id,
+            name=model.name,
+            type=model.type,
+            currency=model.currency,
+            opening_balance=model.opening_balance,
+            is_active=model.is_active,
+        )
 from app.modules.identity.infrastructure.models import OperationType
 
 
@@ -295,6 +362,130 @@ class SQLAlchemyTransactionRepository:
             occurred_on=model.occurred_on,
             notes=model.notes,
             direction=model.direction,
+            created_by=model.created_by,
+            modified_by=model.modified_by,
+            created_date=model.created_date,
+            created_date_utc=model.created_date_utc,
+            modified_date=model.modified_date,
+            modified_date_utc=model.modified_date_utc,
+        )
+
+
+class SQLAlchemyBudgetMonthRepository:
+    """SQLAlchemy repository for budget months."""
+    def __init__(self, session: Session):
+        self.session = session
+
+    def create(self, budget_month: BudgetMonth) -> BudgetMonth:
+        model = BudgetMonthModel(
+            budget_month_id=budget_month.budget_month_id,
+            tenant_id=budget_month.tenant_id,
+            month=budget_month.month,
+            status=budget_month.status,
+            currency=budget_month.currency,
+            closed_at=budget_month.closed_at,
+            created_by=budget_month.created_by,
+            modified_by=budget_month.modified_by,
+            created_date=budget_month.created_date,
+            created_date_utc=budget_month.created_date_utc,
+            modified_date=budget_month.modified_date,
+            modified_date_utc=budget_month.modified_date_utc,
+            operation_type=OperationType.ADDED,
+            transaction_uid=None,
+        )
+        self.session.add(model)
+        self.session.flush()
+        return self._to_entity(model)
+
+    def get_by_month(self, tenant_id: UUID, month: date) -> BudgetMonth | None:
+        model = self.session.query(BudgetMonthModel).filter_by(tenant_id=tenant_id, month=month).first()
+        return self._to_entity(model) if model else None
+
+    def get_by_id(self, budget_month_id: UUID, tenant_id: UUID) -> BudgetMonth | None:
+        model = self.session.query(BudgetMonthModel).filter_by(budget_month_id=budget_month_id, tenant_id=tenant_id).first()
+        return self._to_entity(model) if model else None
+
+    def update(self, budget_month: BudgetMonth) -> BudgetMonth:
+        model = self.session.query(BudgetMonthModel).filter_by(budget_month_id=budget_month.budget_month_id).first()
+        if not model:
+            raise ValueError("BudgetMonth not found")
+        model.status = budget_month.status
+        model.currency = budget_month.currency
+        model.closed_at = budget_month.closed_at
+        model.modified_by = budget_month.modified_by
+        model.modified_date = budget_month.modified_date
+        model.modified_date_utc = budget_month.modified_date_utc
+        self.session.flush()
+        return self._to_entity(model)
+
+    def _to_entity(self, model: BudgetMonthModel) -> BudgetMonth:
+        return BudgetMonth(
+            budget_month_id=model.budget_month_id,
+            tenant_id=model.tenant_id,
+            month=model.month,
+            status=model.status,
+            currency=model.currency,
+            closed_at=model.closed_at,
+            created_by=model.created_by,
+            modified_by=model.modified_by,
+            created_date=model.created_date,
+            created_date_utc=model.created_date_utc,
+            modified_date=model.modified_date,
+            modified_date_utc=model.modified_date_utc,
+        )
+
+
+class SQLAlchemyBudgetAllocationRepository:
+    """SQLAlchemy repository for budget allocations."""
+    def __init__(self, session: Session):
+        self.session = session
+
+    def create(self, allocation: BudgetAllocation) -> BudgetAllocation:
+        model = BudgetAllocationModel(
+            allocation_id=allocation.allocation_id,
+            budget_month_id=allocation.budget_month_id,
+            category_id=allocation.category_id,
+            planned_amount=allocation.planned_amount,
+            created_by=allocation.created_by,
+            modified_by=allocation.modified_by,
+            created_date=allocation.created_date,
+            created_date_utc=allocation.created_date_utc,
+            modified_date=allocation.modified_date,
+            modified_date_utc=allocation.modified_date_utc,
+            operation_type=OperationType.ADDED,
+            transaction_uid=None,
+        )
+        self.session.add(model)
+        self.session.flush()
+        return self._to_entity(model)
+
+    def get_by_budget_and_category(self, budget_month_id: UUID, category_id: UUID) -> BudgetAllocation | None:
+        model = self.session.query(BudgetAllocationModel).filter_by(budget_month_id=budget_month_id, category_id=category_id).first()
+        return self._to_entity(model) if model else None
+
+    def list_by_budget(self, budget_month_id: UUID) -> list[BudgetAllocation]:
+        models = self.session.query(BudgetAllocationModel).filter_by(budget_month_id=budget_month_id).all()
+        return [self._to_entity(m) for m in models]
+
+    def bulk_update(self, allocations: list[BudgetAllocation]) -> list[BudgetAllocation]:
+        updated = []
+        for alloc in allocations:
+            model = self.session.query(BudgetAllocationModel).filter_by(allocation_id=alloc.allocation_id).first()
+            if model:
+                model.planned_amount = alloc.planned_amount
+                model.modified_by = alloc.modified_by
+                model.modified_date = alloc.modified_date
+                model.modified_date_utc = alloc.modified_date_utc
+                updated.append(self._to_entity(model))
+        self.session.flush()
+        return updated
+
+    def _to_entity(self, model: BudgetAllocationModel) -> BudgetAllocation:
+        return BudgetAllocation(
+            allocation_id=model.allocation_id,
+            budget_month_id=model.budget_month_id,
+            category_id=model.category_id,
+            planned_amount=model.planned_amount,
             created_by=model.created_by,
             modified_by=model.modified_by,
             created_date=model.created_date,

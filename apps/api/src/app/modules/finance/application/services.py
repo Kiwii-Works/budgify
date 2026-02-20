@@ -4,7 +4,27 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
-from app.modules.finance.domain.entities import Account, AccountCategory, Transaction
+from app.modules.finance.domain.entities import Account, AccountCategory, Transaction, BudgetMonth, BudgetAllocation, WalletAccount
+from app.modules.finance.infrastructure.repositories import SQLAlchemyWalletAccountRepository
+# ──────────────── Wallet Accounts ────────────────
+class WalletAccountService:
+    def __init__(self, repo: SQLAlchemyWalletAccountRepository):
+        self.repo = repo
+
+    def create_wallet_account(self, wallet_account: WalletAccount) -> WalletAccount:
+        return self.repo.create(wallet_account)
+
+    def get_wallet_account(self, wallet_account_id: UUID, tenant_id: UUID) -> WalletAccount | None:
+        return self.repo.get_by_id(wallet_account_id, tenant_id)
+
+    def list_wallet_accounts(self, tenant_id: UUID, page: int, page_size: int) -> tuple[list[WalletAccount], int]:
+        return self.repo.list(tenant_id, page, page_size)
+
+    def update_wallet_account(self, wallet_account: WalletAccount) -> WalletAccount:
+        return self.repo.update(wallet_account)
+
+    def deactivate_wallet_account(self, wallet_account_id: UUID, tenant_id: UUID) -> None:
+        self.repo.soft_delete(wallet_account_id, tenant_id)
 from app.modules.finance.domain.exceptions import (
     AccountAlreadyExistsError,
     AccountCategoryAlreadyExistsError,
@@ -17,6 +37,8 @@ from app.modules.finance.domain.interfaces import (
     AccountCategoryRepository,
     AccountRepository,
     TransactionRepository,
+    BudgetMonthRepository,
+    BudgetAllocationRepository,
 )
 from app.modules.identity.domain.interfaces import AuditRepository
 
@@ -413,3 +435,96 @@ class DeleteTransactionService:
             transaction_id, "DELETED", tenant_id,
             changes={"before": snapshot, "after": None},
         )
+
+
+# ── Budget Month Services ─────────────────────────────────────────────────────
+
+class BudgetMonthService:
+    """Service for managing budget months (create, get, close, update)."""
+    def __init__(self, repo: BudgetMonthRepository, audit_repo: AuditRepository):
+        self.repo = repo
+        self.audit_repo = audit_repo
+
+    def create_budget_month(self, tenant_id: UUID, month: datetime.date, user_id: UUID, currency: str = "CAD") -> BudgetMonth:
+        now, now_utc = _now()
+        # Check if already exists
+        if self.repo.get_by_month(tenant_id, month):
+            raise Exception("Budget month already exists")
+        budget_month = BudgetMonth(
+            budget_month_id=uuid4(),
+            tenant_id=tenant_id,
+            month=month,
+            status="DRAFT",
+            currency=currency,
+            closed_at=None,
+            created_by=user_id,
+            modified_by=None,
+            created_date=now,
+            created_date_utc=now_utc,
+            modified_date=None,
+            modified_date_utc=None,
+        )
+        result = self.repo.create(budget_month)
+        # TODO: audit log
+        return result
+
+    def get_budget_month(self, tenant_id: UUID, month: datetime.date) -> BudgetMonth | None:
+        return self.repo.get_by_month(tenant_id, month)
+
+    def close_budget_month(self, budget_month_id: UUID, tenant_id: UUID, user_id: UUID) -> BudgetMonth:
+        now, now_utc = _now()
+        budget = self.repo.get_by_id(budget_month_id, tenant_id)
+        if not budget:
+            raise Exception("Budget month not found")
+        if budget.status == "CLOSED":
+            raise Exception("Budget month already closed")
+        budget.status = "CLOSED"
+        budget.closed_at = now_utc
+        budget.modified_by = user_id
+        budget.modified_date = now
+        budget.modified_date_utc = now_utc
+        result = self.repo.update(budget)
+        # TODO: audit log
+        return result
+
+
+# ── Budget Allocation Services ───────────────────────────────────────────────
+
+class BudgetAllocationService:
+    """Service for managing budget allocations (bulk update, list)."""
+    def __init__(self, repo: BudgetAllocationRepository, audit_repo: AuditRepository):
+        self.repo = repo
+        self.audit_repo = audit_repo
+
+    def bulk_update_allocations(self, budget_month_id: UUID, allocations: list[dict], user_id: UUID) -> list[BudgetAllocation]:
+        now, now_utc = _now()
+        updated = []
+        for alloc in allocations:
+            # Assume alloc has allocation_id or (budget_month_id, category_id)
+            entity = self.repo.get_by_budget_and_category(budget_month_id, alloc["category_id"])
+            if entity:
+                entity.planned_amount = Decimal(alloc["planned_amount"])
+                entity.modified_by = user_id
+                entity.modified_date = now
+                entity.modified_date_utc = now_utc
+                updated.append(entity)
+            else:
+                new_alloc = BudgetAllocation(
+                    allocation_id=uuid4(),
+                    budget_month_id=budget_month_id,
+                    category_id=alloc["category_id"],
+                    planned_amount=Decimal(alloc["planned_amount"]),
+                    created_by=user_id,
+                    modified_by=None,
+                    created_date=now,
+                    created_date_utc=now_utc,
+                    modified_date=None,
+                    modified_date_utc=None,
+                )
+                updated.append(new_alloc)
+        result = self.repo.bulk_update(updated)
+        # TODO: audit log
+        return result
+
+    def list_allocations(self, budget_month_id: UUID) -> list[BudgetAllocation]:
+        return self.repo.list_by_budget(budget_month_id)

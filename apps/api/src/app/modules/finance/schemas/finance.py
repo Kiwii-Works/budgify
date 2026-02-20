@@ -1,11 +1,38 @@
-"""Pydantic DTOs for finance module (API boundary only)."""
 
+from pydantic import BaseModel, Field
+from enum import Enum
 from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+class WalletAccountType(str, Enum):
+    CASH = "CASH"
+    BANK = "BANK"
+    CREDIT = "CREDIT"
+    SAVINGS = "SAVINGS"
 
+class CreateWalletAccountRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    type: WalletAccountType
+    currency: str = Field(default="CAD", min_length=3, max_length=3)
+    opening_balance: Decimal = Field(default=0.00, ge=0)
+
+class UpdateWalletAccountRequest(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=100)
+    type: WalletAccountType | None = None
+    currency: str | None = Field(None, min_length=3, max_length=3)
+    opening_balance: Decimal | None = Field(None, ge=0)
+    is_active: bool | None = None
+
+class WalletAccountResponse(BaseModel):
+    wallet_account_id: str
+    tenant_id: str
+    name: str
+    type: WalletAccountType
+    currency: str
+    opening_balance: Decimal
+    is_active: bool
+"""Pydantic DTOs for finance module (API boundary only)."""
 
 # ── Account Category ──────────────────────────────────────────────────────────
 
@@ -83,3 +110,52 @@ class TransactionResponse(BaseModel):
     occurred_on: str
     notes: str | None
     direction: str
+
+
+# ── Budgets ─────────────────────────────────────────────────────────────────
+
+class BudgetMonthCreateRequest(BaseModel):
+    """Request body for creating a budget month."""
+    month: date
+    currency: str = "CAD"
+
+class BudgetMonthResponse(BaseModel):
+    """Response model for a budget month."""
+    budget_month_id: str
+    tenant_id: str
+    month: date
+    status: str
+    currency: str
+    closed_at: date | None
+
+class BudgetAllocationRequest(BaseModel):
+    """Request body for a budget allocation (bulk update)."""
+    category_id: UUID
+    planned_amount: Decimal
+
+class BudgetAllocationResponse(BaseModel):
+    """Response model for a budget allocation."""
+    allocation_id: str
+    budget_month_id: str
+    category_id: str
+    planned_amount: Decimal
+
+class BudgetSummaryCategoryRow(BaseModel):
+    """Summary row for a category in the budget summary."""
+    category_id: str
+    category_name: str
+    planned_amount: Decimal | None
+    actual_amount: Decimal
+    remaining_amount: Decimal | None
+    is_unbudgeted: bool
+    is_overbudget: bool
+
+class BudgetSummaryResponse(BaseModel):
+    """Response model for the budget summary."""
+    month: date
+    categories: list[BudgetSummaryCategoryRow]
+    total_income: Decimal
+    total_expenses: Decimal
+    net: Decimal
+    budgeted_total: Decimal
+    unbudgeted_total: Decimal
